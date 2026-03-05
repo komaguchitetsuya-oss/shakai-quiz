@@ -325,7 +325,7 @@ def update_quizzes_json(quiz_id, title, pages_data, target_dir):
     print(f"\nUpdated {json_path}: {quiz_id} ({title}) - {len(pages_data)} pages, {total_regions} regions")
 
 
-def process_pdf(pdf_path, quiz_id, title, skip_cover=False):
+def process_pdf(pdf_path, quiz_id, title, skip_cover=False, max_pages=None):
     """PDFの全ページを処理"""
     pages_dir = os.path.join(BASE_DIR, "data", quiz_id, "pages")
     os.makedirs(pages_dir, exist_ok=True)
@@ -336,6 +336,8 @@ def process_pdf(pdf_path, quiz_id, title, skip_cover=False):
     output_num = 0
 
     for page_num in range(start_page, len(doc)):
+        if max_pages and output_num >= max_pages:
+            break
         output_num += 1
         page = doc[page_num]
         mat = fitz.Matrix(2.0, 2.0)
@@ -393,10 +395,16 @@ def process_pdf(pdf_path, quiz_id, title, skip_cover=False):
         for i, r in enumerate(regions):
             r["id"] = f"{quiz_id}-p{output_num}-r{i + 1}"
 
+        # Convert numpy int64 to native int for JSON serialization
+        for r in regions:
+            for k in ("x", "y", "w", "h"):
+                if k in r:
+                    r[k] = int(r[k])
+
         all_pages.append({
             "page": output_num,
-            "width": w,
-            "height": h,
+            "width": int(w),
+            "height": int(h),
             "regions": regions,
         })
 
@@ -500,6 +508,7 @@ if __name__ == "__main__":
     parser.add_argument("--quiz-id", default=None, help="クイズID (例: 630-02)")
     parser.add_argument("--title", default=None, help="クイズタイトル (例: '630-02 植物の働き①')")
     parser.add_argument("--skip-cover", action="store_true", help="表紙（1ページ目）をスキップ")
+    parser.add_argument("--max-pages", type=int, default=None, help="出力する最大ページ数")
     args = parser.parse_args()
 
     doc = fitz.open(args.pdf)
@@ -515,6 +524,6 @@ if __name__ == "__main__":
     print(f"Skip cover: {args.skip_cover}")
     print()
 
-    full_data = process_pdf(args.pdf, quiz_id, title, args.skip_cover)
+    full_data = process_pdf(args.pdf, quiz_id, title, args.skip_cover, max_pages=args.max_pages)
     print("\n--- Generating split pages ---")
     generate_split_pages(full_data, quiz_id, title)
