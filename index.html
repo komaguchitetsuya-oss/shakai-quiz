@@ -190,35 +190,30 @@
     }
     .progress-text { font-size: 13px; color: #86868b; white-space: nowrap; }
 
-    .page-nav-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 6px;
-    }
     .page-nav-btn {
       background: none;
       border: 1px solid #e5e5e7;
-      border-radius: 6px;
-      padding: 4px 12px;
-      font-size: 14px;
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 18px;
       color: #007aff;
       cursor: pointer;
-      min-height: 32px;
+      min-height: 48px;
+      min-width: 48px;
+      flex-shrink: 0;
     }
     .page-nav-btn:disabled { opacity: 0.3; color: #86868b; }
     .page-nav-label {
       font-size: 13px; color: #86868b; font-weight: 600;
-      min-width: 80px; text-align: center;
+      white-space: nowrap;
     }
     .btn-finish {
-      background: #ff9500; color: #fff; border: none; border-radius: 6px;
-      padding: 4px 12px; font-size: 13px; font-weight: 600;
-      cursor: pointer; min-height: 32px; margin-left: auto;
+      background: #ff9500; color: #fff; border: none; border-radius: 10px;
+      padding: 8px 12px; font-size: 14px; font-weight: 600;
+      cursor: pointer; min-height: 48px; flex-shrink: 0;
     }
 
-    .btn-row { display: flex; gap: 10px; }
+    .btn-row { display: flex; gap: 8px; align-items: center; }
     .btn {
       flex: 1; padding: 14px; font-size: 16px; font-weight: 600;
       border: none; border-radius: 10px; cursor: pointer;
@@ -307,25 +302,29 @@
     <div class="controls">
       <div class="progress-row">
         <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <span class="page-nav-label" id="page-nav-label"></span>
         <span class="progress-text" id="progress-text"></span>
       </div>
-      <div class="page-nav-row" id="page-nav-row">
+      <div class="btn-row" id="reveal-row">
         <button class="page-nav-btn" id="page-prev-btn">&#x25C0;</button>
-        <span class="page-nav-label" id="page-nav-label"></span>
+        <button class="btn btn-secondary hidden" id="undo-btn">&#x21A9; 戻る</button>
+        <button class="btn btn-primary" id="reveal-btn">答えを表示</button>
         <button class="page-nav-btn" id="page-next-btn">&#x25B6;</button>
         <button class="btn-finish" id="finish-btn">終了</button>
       </div>
-      <div class="btn-row" id="reveal-row">
-        <button class="btn btn-secondary hidden" id="undo-btn">&#x21A9; 戻る</button>
-        <button class="btn btn-primary" id="reveal-btn">答えを表示</button>
-      </div>
       <div class="btn-row hidden" id="judge-row">
+        <button class="page-nav-btn judge-prev-btn">&#x25C0;</button>
         <button class="btn btn-correct" id="correct-btn">&#x2B55; 正解</button>
         <button class="btn btn-incorrect" id="incorrect-btn">&#x274C; 不正解</button>
+        <button class="page-nav-btn judge-next-btn">&#x25B6;</button>
+        <button class="btn-finish judge-finish-btn">終了</button>
       </div>
       <div class="btn-row hidden" id="done-row">
+        <button class="page-nav-btn done-prev-btn">&#x25C0;</button>
         <button class="btn btn-secondary" id="done-undo-btn">&#x21A9; 戻る</button>
         <button class="btn btn-primary" id="done-results-btn">結果を見る</button>
+        <button class="page-nav-btn done-next-btn">&#x25B6;</button>
+        <button class="btn-finish done-finish-btn">終了</button>
       </div>
     </div>
   </div>
@@ -1205,12 +1204,18 @@ function highlightActiveRegion() {
 function updatePageNav() {
   const pageIdx = quizPageNumbers.indexOf(currentPageNum);
   const label = document.getElementById('page-nav-label');
-  const prevBtn = document.getElementById('page-prev-btn');
-  const nextBtn = document.getElementById('page-next-btn');
 
   label.textContent = `p${currentPageNum} / ${quizPageNumbers.length}ページ`;
-  prevBtn.disabled = (pageIdx <= 0);
-  nextBtn.disabled = (pageIdx >= quizPageNumbers.length - 1);
+  const isPrevDisabled = (pageIdx <= 0);
+  const isNextDisabled = (pageIdx >= quizPageNumbers.length - 1);
+  document.querySelectorAll('.page-nav-btn').forEach(btn => {
+    if (btn.id === 'page-prev-btn' || btn.classList.contains('judge-prev-btn') || btn.classList.contains('done-prev-btn')) {
+      btn.disabled = isPrevDisabled;
+    }
+    if (btn.id === 'page-next-btn' || btn.classList.contains('judge-next-btn') || btn.classList.contains('done-next-btn')) {
+      btn.disabled = isNextDisabled;
+    }
+  });
 }
 
 function skipToPage(pageNum) {
@@ -1413,6 +1418,11 @@ document.getElementById('done-undo-btn').addEventListener('click', undoLastAnswe
 document.getElementById('page-prev-btn').addEventListener('click', goToPrevPage);
 document.getElementById('page-next-btn').addEventListener('click', goToNextPage);
 document.getElementById('finish-btn').addEventListener('click', finishQuiz);
+
+// Nav buttons in judge-row and done-row
+document.querySelectorAll('.judge-prev-btn, .done-prev-btn').forEach(btn => btn.addEventListener('click', goToPrevPage));
+document.querySelectorAll('.judge-next-btn, .done-next-btn').forEach(btn => btn.addEventListener('click', goToNextPage));
+document.querySelectorAll('.judge-finish-btn, .done-finish-btn').forEach(btn => btn.addEventListener('click', finishQuiz));
 
 document.getElementById('quiz-back').addEventListener('click', () => {
   if (answeredSet.size > 0 && answeredSet.size < allRegions.length) {
